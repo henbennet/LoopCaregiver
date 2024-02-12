@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import LoopCaregiverKit
+import LoopCaregiverKitUI
 import SwiftUI
 
 struct LoopCaregiverWidgetView : View {
@@ -16,6 +18,8 @@ struct LoopCaregiverWidgetView : View {
     
     init(entry: SimpleEntry, settings: CaregiverSettings){
         self.entry = entry
+        //TODO: Settings changes from the app don't seem to propogate here
+        //requiring a device reboot after changing the active Looper, for instance.
         self.settings = settings
     }
     
@@ -36,7 +40,7 @@ struct LoopCaregiverWidgetView : View {
                 switch family {
                 case .accessoryCircular:
                     if let latestGlucoseSample = entry.currentGlucoseSample {
-                        LatestGlucoseView(timelineEntryDate: entry.date, latestGlucose: latestGlucoseSample, lastGlucoseChange: entry.lastGlucoseChange, settings: settings, isLastEntry: entry.isLastEntry)
+                        LatestGlucoseCircularView(viewModel: WidgetViewModel(timelineEntryDate: entry.date, latestGlucose: latestGlucoseSample, lastGlucoseChange: entry.lastGlucoseChange, isLastEntry: entry.isLastEntry, glucoseDisplayUnits: settings.glucoseDisplayUnits))
                     } else {
                         emptyLatestGlucoseView
                     }
@@ -70,7 +74,7 @@ struct LoopCaregiverWidgetView : View {
                     .font(.headline)
             }
             if let latestGlucoseSample = entry.currentGlucoseSample {
-                LatestGlucoseView(timelineEntryDate: entry.date, latestGlucose: latestGlucoseSample, lastGlucoseChange: entry.lastGlucoseChange, settings: settings, isLastEntry: entry.isLastEntry)
+                LatestGlucoseCircularView(viewModel: WidgetViewModel(timelineEntryDate: entry.date, latestGlucose: latestGlucoseSample, lastGlucoseChange: entry.lastGlucoseChange, isLastEntry: entry.isLastEntry, glucoseDisplayUnits: settings.glucoseDisplayUnits))
             } else {
                 emptyLatestGlucoseView
             }
