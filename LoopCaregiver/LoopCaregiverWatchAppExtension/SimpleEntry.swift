@@ -7,25 +7,38 @@
 
 import Foundation
 import HealthKit
+import LoopCaregiverKit
 import LoopKit
 import WidgetKit
 
 struct SimpleEntry: TimelineEntry {
-    
+    let looper: Looper?
     let currentGlucoseSample: NewGlucoseSample?
     let lastGlucoseChange: Double?
     let date: Date
     let entryIndex: Int
     let isLastEntry: Bool
     let glucoseDisplayUnits: HKUnit
-    
+
     func nextExpectedGlucoseDate() -> Date? {
         let secondsBetweenSamples: TimeInterval = 60 * 5
-        
+
         guard let glucoseDate = currentGlucoseSample?.date else {
             return nil
         }
-            
+
         return glucoseDate.addingTimeInterval(secondsBetweenSamples)
+    }
+
+    static func placeHolderEntry(looper: Looper?, glucoseDisplayUnits: HKUnit) -> SimpleEntry {
+        SimpleEntry(
+            looper: looper,
+            currentGlucoseSample: nil,
+            lastGlucoseChange: 0,
+            date: Date(),
+            entryIndex: 0,
+            isLastEntry: true,
+            glucoseDisplayUnits: glucoseDisplayUnits
+        )
     }
 }

@@ -10,27 +10,63 @@ import Foundation
 public class ServiceComposerProduction: ServiceComposer {
     public let settings: CaregiverSettings
     public let accountServiceManager: AccountServiceManager
-    public let watchSession: WatchSession
     public let watchService: WatchService
-    
+    public let deepLinkHandler: DeepLinkHandler
+
     public init() {
-        let userDefaults: UserDefaults
-        let containerFactory: PersistentContainerFactory
-        var appGroupsSupported = false
+        let userDefaults = Self.createUserDefaults()
+        self.settings = Self.createCaregiverSettings(userDefaults: userDefaults)
+        self.accountServiceManager = Self.createAccountServiceManager()
+        self.watchService = Self.createWatchService(accountServiceManager: accountServiceManager)
+        self.deepLinkHandler = Self.createDeepLinkHandler(accountServiceManager: accountServiceManager, settings: settings, watchService: watchService)
+    }
 
-        if let appGroupName = Bundle.main.appGroupSuiteName, let _ = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName) {
-            appGroupsSupported = true
-            userDefaults = UserDefaults(suiteName: Bundle.main.appGroupSuiteName)!
-            containerFactory = AppGroupPersisentContainerFactory(appGroupName: appGroupName)
+    static func createCaregiverSettings(userDefaults: UserDefaults) -> CaregiverSettings {
+        let appGroupsSupported = Self.appGroupName() != nil
+        return CaregiverSettings(userDefaults: userDefaults, appGroupsSupported: appGroupsSupported)
+    }
+
+    static func createPersistentContainerFactory() -> PersistentContainerFactory {
+        if let appGroupName = appGroupName() {
+            return AppGroupPersisentContainerFactory(appGroupName: appGroupName)
         } else {
-            userDefaults = UserDefaults.standard
-            containerFactory = NoAppGroupsPersistentContainerFactory()
+            return NoAppGroupsPersistentContainerFactory()
         }
-        
-        self.settings = CaregiverSettings(userDefaults: userDefaults, appGroupsSupported: appGroupsSupported)
-        self.accountServiceManager = AccountServiceManager(accountService: CoreDataAccountService(containerFactory: containerFactory))
+    }
 
-        self.watchService = WatchService(accountService: self.accountServiceManager)
-        self.watchSession = self.watchService.watchSession
+    static func createUserDefaults() -> UserDefaults {
+        if let appGroupName = appGroupName() {
+            return UserDefaults(suiteName: appGroupName)!
+        } else {
+            return UserDefaults.standard
+        }
+    }
+
+    static func createAccountServiceManager() -> AccountServiceManager {
+        let containerFactory = Self.createPersistentContainerFactory()
+        return AccountServiceManager(accountService: CoreDataAccountService(containerFactory: containerFactory))
+    }
+
+    static func createWatchService(accountServiceManager: AccountServiceManager) -> WatchService {
+        return WatchService(accountService: accountServiceManager)
+    }
+
+    static func createDeepLinkHandler(accountServiceManager: AccountServiceManager, settings: CaregiverSettings, watchService: WatchService) -> DeepLinkHandler {
+#if os(iOS)
+        return DeepLinkHandlerPhone(accountService: accountServiceManager, settings: settings, watchService: watchService)
+#elseif os(watchOS)
+        return DeepLinkHandlerWatch(accountService: accountServiceManager, settings: settings, watchService: watchService)
+#else
+        return DeepLinkHandlerPhone(accountService: accountServiceManager, settings: settings, watchService: watchService)
+        queuedFatalError("Unsupported platform")
+#endif
+    }
+
+    static func appGroupName() -> String? {
+        guard let appGroupName = Bundle.main.appGroupSuiteName, FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName) != nil else {
+            return nil
+        }
+
+        return appGroupName
     }
 }

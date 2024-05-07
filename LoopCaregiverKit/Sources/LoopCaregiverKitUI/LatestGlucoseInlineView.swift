@@ -9,15 +9,13 @@ import HealthKit
 import LoopKit
 import SwiftUI
 
-
 public struct LatestGlucoseInlineView: View {
-
     public let viewModel: WidgetViewModel
-    
+
     public init(viewModel: WidgetViewModel) {
         self.viewModel = viewModel
     }
-    
+
     public var body: some View {
         HStack {
             Text(statusText)
@@ -30,10 +28,11 @@ public struct LatestGlucoseInlineView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: 15)
                     .offset(.init(width: 0.0, height: -7.0))
+                    .accessibilityLabel(Text(currentTrendImageName))
             }
         }
     }
-    
+
     var statusText: String {
         var result = [String]()
         result.append(viewModel.currentGlucoseText)
@@ -46,8 +45,7 @@ public struct LatestGlucoseInlineView: View {
 
 struct LatestGlucoseInlineView_Previews: PreviewProvider {
     static var previews: some View {
-        let latestGlucose = NewGlucoseSample(date: Date(), quantity: .init(unit: .gramsPerUnit, doubleValue: 1.0), condition: .aboveRange, trend: .down, trendRate: .none, isDisplayOnly: false, wasUserEntered: false, syncIdentifier: "12345")
-        let viewModel = WidgetViewModel(timelineEntryDate: Date(), latestGlucose: latestGlucose, lastGlucoseChange: 3, isLastEntry: true, glucoseDisplayUnits: .gramsPerUnit)
+        let viewModel = WidgetViewModel(timelineEntryDate: Date(), latestGlucose: NewGlucoseSample.placeholder(), lastGlucoseChange: 3, isLastEntry: true, glucoseDisplayUnits: .gramsPerUnit, looper: nil)
         LatestGlucoseInlineView(viewModel: viewModel)
     }
 }

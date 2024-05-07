@@ -11,40 +11,47 @@ import LoopCaregiverKit
 import SwiftUI
 
 class SettingsViewModel: ObservableObject {
-    
-    /*
-    @Published var selectedLooper: Looper {
-        didSet {
-            do {
-                try accountService.updateActiveLoopUser(selectedLooper)
-            } catch {
-                print(error)
-            }
+    @Published var networkAvailable: Bool
+    @Published var timer: Timer?
+
+    init() {
+        self.networkAvailable = false
+        self.timer = createTimer()
+        Task {
+            await self.checkNetwork()
         }
     }
-    @ObservedObject var accountService: AccountServiceManager
-    private var settings: CaregiverSettings
-    private var subscribers: Set<AnyCancellable> = []
-    
-    init(selectedLooper: Looper, accountService: AccountServiceManager, settings: CaregiverSettings) {
-        self.selectedLooper = selectedLooper
-        self.accountService = accountService
-        self.settings = settings
-        
-        self.accountService.$selectedLooper.sink { val in
-        } receiveValue: { [weak self] updatedUser in
-            if let self, let updatedUser, self.selectedLooper != updatedUser {
-                self.selectedLooper = updatedUser
+
+    @MainActor
+    func updateNetworkAvailable(available: Bool) {
+        self.networkAvailable = available
+    }
+
+    private func createTimer() -> Timer {
+        let timer = Timer(timeInterval: 30, repeats: true, block: { _ in
+            Task {
+                await self.checkNetwork()
             }
-        }.store(in: &subscribers)
+        })
+        RunLoop.main.add(timer, forMode: .default)
+        return timer
     }
-    
-    func loopers() -> [Looper] {
-        return accountService.loopers
+
+    private func checkNetwork() async {
+        do {
+            guard let url = URL(string: "https://www.google.com") else { return }
+            guard let (_, response) = try await URLSession.shared.data(from: url) as? (Data, HTTPURLResponse) else {
+                await self.updateNetworkAvailable(available: false)
+                return
+            }
+            let responseValid = response.statusCode >= 200 && response.statusCode <= 299
+            await self.updateNetworkAvailable(available: responseValid)
+        } catch {
+            await self.updateNetworkAvailable(available: false)
+        }
     }
-     */
-}
 
-
-protocol SettingsViewModelDelegate {
+    deinit {
+        self.timer?.invalidate()
+    }
 }

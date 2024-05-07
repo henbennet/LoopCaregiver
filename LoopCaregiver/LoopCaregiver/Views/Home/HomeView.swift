@@ -11,26 +11,26 @@ import SwiftUI
 import WidgetKit
 
 struct HomeView: View {
-    
     @ObservedObject var accountService: AccountServiceManager
     @ObservedObject var remoteDataSource: RemoteDataServiceManager
     @ObservedObject var settings: CaregiverSettings
     @ObservedObject var looperService: LooperService
-    var watchSession: WatchSession
+    var watchService: WatchService
     
     @State private var showCarbView = false
     @State private var showBolusView = false
     @State private var showOverrideView = false
     @State private var showSettingsView = false
     
-    @Environment(\.scenePhase) var scenePhase
+    @Environment(\.scenePhase)
+    var scenePhase
     
-    init(looperService: LooperService, watchSession: WatchSession){
+    init(looperService: LooperService, watchService: WatchService) {
         self.looperService = looperService
         self.settings = looperService.settings
         self.accountService = looperService.accountService
         self.remoteDataSource = looperService.remoteDataSource
-        self.watchSession = watchSession
+        self.watchService = watchService
     }
     
     var body: some View {
@@ -40,40 +40,67 @@ struct HomeView: View {
                 .padding([.bottom], 5.0)
                 .background(Color.cellBackgroundColor)
             if let recommendedBolus = remoteDataSource.recommendedBolus {
-                TitleSubtitleRowView(title: "Recommended Bolus", subtitle: LocalizationUtils.presentableStringFromBolusAmount(recommendedBolus) + " U")
-                    .padding([.bottom, .trailing], 5.0)
+                TitleSubtitleRowView(
+                    title: "Recommended Bolus",
+                    subtitle: LocalizationUtils.presentableStringFromBolusAmount(recommendedBolus) + " U"
+                )
+                .padding([.bottom, .trailing], 5.0)
             }
-            ChartsListView(looperService: looperService, remoteDataSource: remoteDataSource, settings: looperService.settings)
-                .padding([.leading, .trailing], 5.0)
-            BottomBarView(showCarbView: $showCarbView, showBolusView: $showBolusView, showOverrideView: $showOverrideView, showSettingsView: $showSettingsView, remoteDataSource: remoteDataSource)
+            ChartsListView(
+                looperService: looperService,
+                remoteDataSource: remoteDataSource,
+                settings: looperService.settings
+            )
+            .padding([.leading, .trailing], 5.0)
+            BottomBarView(
+                showCarbView: $showCarbView,
+                showBolusView: $showBolusView,
+                showOverrideView: $showOverrideView,
+                showSettingsView: $showSettingsView,
+                remoteDataSource: remoteDataSource
+            )
         }
         .overlay {
-            if !disclaimerValid(){
+            if !disclaimerValid() {
                 disclaimerOverlay()
             }
         }
-        .ignoresSafeArea(.keyboard) //Avoid keyboard bounce when popping back from sheets
+        .ignoresSafeArea(.keyboard) // Avoid keyboard bounce when popping back from sheets
         .sheet(isPresented: $showCarbView) {
             CarbInputView(looperService: looperService, showSheetView: $showCarbView)
         }
         .sheet(isPresented: $showBolusView) {
-            BolusInputView(looperService: looperService, remoteDataSource: looperService.remoteDataSource, showSheetView: $showBolusView)
+            BolusInputView(
+                looperService: looperService,
+                remoteDataSource: looperService.remoteDataSource,
+                showSheetView: $showBolusView
+            )
         }
         .sheet(isPresented: $showOverrideView) {
             NavigationStack {
                 OverrideView(delegate: looperService.remoteDataSource) {
                     showOverrideView = false
                 }
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: {
+                            showOverrideView = false
+                        }, label: {
+                            Text("Cancel")
+                        })
+                    }
+                }
                 .navigationBarTitle(Text("Custom Preset"), displayMode: .inline)
-                .navigationBarItems(leading: Button(action: {
-                    showOverrideView = false
-                }) {
-                    Text("Cancel")
-                })
             }
         }
         .sheet(isPresented: $showSettingsView) {
-            SettingsView(looperService: looperService, accountService: accountService, settings: looperService.settings, watchSession: watchSession, showSheetView: $showSettingsView)
+            SettingsView(
+                looperService: looperService,
+                accountService: accountService,
+                settings: looperService.settings,
+                watchService: watchService,
+                showSheetView: $showSettingsView
+            )
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
@@ -96,16 +123,16 @@ struct HomeView: View {
             return false
         }
         
-        return disclaimerAcceptedDate > Date().addingTimeInterval(-60*60*24*365)
+        return disclaimerAcceptedDate > Date().addingTimeInterval(-60 * 60 * 24 * 365)
     }
 }
-
 
 #Preview {
     let composer = ServiceComposerPreviews()
     let looper = composer.accountServiceManager.selectedLooper!
-    var showSheetView = true
-    let showSheetBinding = Binding<Bool>(get: {showSheetView}, set: {showSheetView = $0})
-    let looperService = composer.accountServiceManager.createLooperService(looper: looper, settings: composer.settings)
-    return HomeView(looperService: looperService, watchSession: composer.watchSession)
+    let looperService = composer.accountServiceManager.createLooperService(
+        looper: looper,
+        settings: composer.settings
+    )
+    return HomeView(looperService: looperService, watchService: composer.watchService)
 }
