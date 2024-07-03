@@ -30,7 +30,7 @@ struct HomeView: View {
     var body: some View {
         VStack {
             HStack {
-                Text(remoteDataSource.currentGlucoseSample?.presentableStringValue(displayUnits: settings.glucoseDisplayUnits) ?? " ")
+                Text(remoteDataSource.currentGlucoseSample?.presentableStringValue(displayUnits: settings.glucoseDisplayUnits, includeShortUnits: false) ?? " ")
                     .strikethrough(egvIsOutdated())
                     .font(.largeTitle)
                     .foregroundColor(egvValueColor())
@@ -48,9 +48,12 @@ struct HomeView: View {
                         .if(egvIsOutdated(), transform: { view in
                             view.foregroundColor(.red)
                         })
-                            Text(lastEGVDeltaFormatted())
-                            .font(.footnote)
+                    Text(lastEGVDeltaFormatted())
+                        .font(.footnote)
                 }
+            }
+            if let overrideAndStatus = remoteDataSource.activeOverrideAndStatus() {
+                Text(overrideAndStatus.override.presentableDescription())
             }
         }
         .navigationTitle(accountService.selectedLooper?.name ?? "Name?")
@@ -90,7 +93,8 @@ struct HomeView: View {
 
     func glucoseText() -> String {
         return remoteDataSource.currentGlucoseSample?.presentableStringValue(
-            displayUnits: settings.glucoseDisplayUnits
+            displayUnits: settings.glucoseDisplayUnits,
+            includeShortUnits: false
         ) ?? " "
     }
 
